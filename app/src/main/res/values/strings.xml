@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">IIJmio Toggle</string>
+    <string name="list0_0">設定</string>
+    <string name="list1_0">サービスを起動する</string>
+    <string name="list1_1">サービスを停止する</string>
+    <string name="list2_0">指定時刻にクーポンを切り替える\n（%s）</string>
+    <string name="list3_0">OFFにする時刻（%1$02d:%2$02d）</string>
+    <string name="list4_0">ONにする時刻（%1$02d:%2$02d）</string>
+    <string name="select_0">設定なし</string>
+    <string name="select_1">ON/OFFする</string>
+    <string name="select_2">OFFのみ</string>
+    <string name="select_3">ONのみ</string>
+    <string name="select_4">キャンセル</string>
+    <string name="notify_title">クーポン総残量 %dMB</string>
+    <string name="notify_text">タップでクーポンのON/OFFを切り替え</string>
+    <string name="toast_1">再ログインしてください</string>
+    <string name="toast_2">1分後にクーポンを切り替えます</string>
+
+</resources>
