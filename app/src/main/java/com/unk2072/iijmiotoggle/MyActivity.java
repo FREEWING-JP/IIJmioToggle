@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.text.format.DateFormat;
@@ -165,6 +166,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
     }
 
     public static class SettingDialog1 extends DialogFragment implements DialogInterface.OnClickListener {
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -188,6 +190,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
     }
 
     public static class SettingDialog2 extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
@@ -209,6 +212,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
     }
 
     public static class SettingDialog3 extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
