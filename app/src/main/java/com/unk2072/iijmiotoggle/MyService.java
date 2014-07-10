@@ -75,7 +75,7 @@ public class MyService extends IntentService {
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
             SharedPreferences.Editor edit = pref.edit();
             edit.putBoolean(RUN_FLAG, false);
-            edit.commit();
+            edit.apply();
         }
     }
 
@@ -155,7 +155,7 @@ public class MyService extends IntentService {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = pref.edit();
         edit.putString(ACCESS_TOKEN, "");
-        edit.commit();
+        edit.apply();
         Uri uri = Uri.parse("https://api.iijmio.jp/mobile/d/v1/authorization/?response_type=token&client_id=pZgayGOChl8Lm5ILZKy&state=" + mode + "&redirect_uri=com.unk2072.iijmiotoggle%3A%2F%2Fcallback");
         startActivity(new Intent(Intent.ACTION_VIEW, uri));
         return true;

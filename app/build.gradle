@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.unk2072.iijmiotoggle"
-        minSdkVersion 8
+        minSdkVersion 11
         targetSdkVersion 20
         versionCode 1
         versionName "1.0"

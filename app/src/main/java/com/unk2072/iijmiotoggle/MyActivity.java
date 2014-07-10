@@ -2,7 +2,6 @@ package com.unk2072.iijmiotoggle;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -80,7 +79,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = pref.edit();
         edit.putString(ACCESS_TOKEN, token);
-        edit.commit();
+        edit.apply();
 
         boolean run_flag = pref.getBoolean(RUN_FLAG, false);
         if (run_flag) {
@@ -183,51 +182,107 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
             my.mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[i]);
             edit.putInt(ALARM_FLAG, i);
-            edit.commit();
+            edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
     }
 
-    public static class SettingDialog2 extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+    public static class SettingDialog2 extends DialogFragment implements DialogInterface.OnClickListener {
+        TimePicker mTimePicker;
+
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            return new TimePickerDialog(getActivity(), this, pref.getInt(OFF_HOUR, 8), pref.getInt(OFF_MINUTE, 0), DateFormat.is24HourFormat(getActivity()));
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle(R.string.time_title);
+            mTimePicker = new TimePicker(getActivity());
+            if (savedInstanceState != null){
+                mTimePicker.setCurrentHour(savedInstanceState.getInt(OFF_HOUR));
+                mTimePicker.setCurrentMinute(savedInstanceState.getInt(OFF_MINUTE));
+            } else {
+                mTimePicker.setCurrentHour(pref.getInt(OFF_HOUR, 8));
+                mTimePicker.setCurrentMinute(pref.getInt(OFF_MINUTE, 0));
+            }
+            mTimePicker.setIs24HourView(DateFormat.is24HourFormat(getActivity()));
+            mTimePicker.setSaveFromParentEnabled(false);
+            mTimePicker.setSaveEnabled(true);
+            builder.setView(mTimePicker);
+            builder.setPositiveButton(R.string.time_done, this);
+            return builder.create();
         }
 
         @Override
-        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+        public void onSaveInstanceState(Bundle outState) {
+            if (mTimePicker != null){
+                outState.putInt(OFF_HOUR, mTimePicker.getCurrentHour());
+                outState.putInt(OFF_MINUTE, mTimePicker.getCurrentMinute());
+            }
+            super.onSaveInstanceState(outState);
+        }
+
+        @Override
+        public void onClick(DialogInterface dialogInterface, int i) {
+            final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            int hour = mTimePicker.getCurrentHour();
+            int minute = mTimePicker.getCurrentMinute();
             MyActivity my = (MyActivity)getActivity();
-            final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my);
             SharedPreferences.Editor edit = pref.edit();
             my.mListText[2] = getString(R.string.list3_0, hour, minute);
             edit.putInt(OFF_HOUR, hour);
             edit.putInt(OFF_MINUTE, minute);
-            edit.commit();
+            edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
     }
 
-    public static class SettingDialog3 extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+    public static class SettingDialog3 extends DialogFragment implements DialogInterface.OnClickListener {
+        TimePicker mTimePicker;
+
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            return new TimePickerDialog(getActivity(), this, pref.getInt(ON_HOUR, 17), pref.getInt(ON_MINUTE, 0), DateFormat.is24HourFormat(getActivity()));
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle(R.string.time_title);
+            mTimePicker = new TimePicker(getActivity());
+            if (savedInstanceState != null){
+                mTimePicker.setCurrentHour(savedInstanceState.getInt(ON_HOUR));
+                mTimePicker.setCurrentMinute(savedInstanceState.getInt(ON_MINUTE));
+            } else {
+                mTimePicker.setCurrentHour(pref.getInt(ON_HOUR, 17));
+                mTimePicker.setCurrentMinute(pref.getInt(ON_MINUTE, 0));
+            }
+            mTimePicker.setIs24HourView(DateFormat.is24HourFormat(getActivity()));
+            mTimePicker.setSaveFromParentEnabled(false);
+            mTimePicker.setSaveEnabled(true);
+            builder.setView(mTimePicker);
+            builder.setPositiveButton(R.string.time_done, this);
+            return builder.create();
         }
 
         @Override
-        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+        public void onSaveInstanceState(Bundle outState) {
+            if (mTimePicker != null){
+                outState.putInt(ON_HOUR, mTimePicker.getCurrentHour());
+                outState.putInt(ON_MINUTE, mTimePicker.getCurrentMinute());
+            }
+            super.onSaveInstanceState(outState);
+        }
+
+        @Override
+        public void onClick(DialogInterface dialogInterface, int i) {
+            final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            int hour = mTimePicker.getCurrentHour();
+            int minute = mTimePicker.getCurrentMinute();
             MyActivity my = (MyActivity)getActivity();
-            final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my);
             SharedPreferences.Editor edit = pref.edit();
             my.mListText[3] = getString(R.string.list4_0, hour, minute);
             edit.putInt(ON_HOUR, hour);
             edit.putInt(ON_MINUTE, minute);
-            edit.commit();
+            edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
