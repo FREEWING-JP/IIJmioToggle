@@ -38,9 +38,9 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
     @Override
     protected Integer doInBackground(Integer... values) {
         int mode = values[0];
-        int volume = 0;
-        boolean couponUse = false;
-        String hdoServiceCode = "";
+        int volume;
+        boolean couponUse;
+        String hdoServiceCode;
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my_service);
         String token = pref.getString(ACCESS_TOKEN, "");
@@ -74,9 +74,9 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                 return status;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            return 1;
         } catch (JSONException e) {
-            e.printStackTrace();
+            return 1;
         }
 
         if (mode != 0) {
@@ -102,7 +102,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                         return status;
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    return 1;
                 }
             }
         }
@@ -126,7 +126,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
 
         SharedPreferences.Editor edit = pref.edit();
         edit.putBoolean(RUN_FLAG, true);
-        edit.commit();
+        edit.apply();
         return 0;
     }
 }
