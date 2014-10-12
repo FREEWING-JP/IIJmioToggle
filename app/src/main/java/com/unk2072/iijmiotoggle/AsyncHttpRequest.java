@@ -1,5 +1,6 @@
 package com.unk2072.iijmiotoggle;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,9 +26,6 @@ import java.io.IOException;
 
 public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
     private static final String TAG = "AsyncHttpRequest";
-    private static final String ACCESS_TOKEN = "access_token";
-    private static final String RUN_FLAG = "run_flag";
-    private static final String RUN_MODE = "run_mode";
     private MyService my_service;
 
     public AsyncHttpRequest(MyService my) {
@@ -43,7 +41,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         String hdoServiceCode;
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my_service);
-        String token = pref.getString(ACCESS_TOKEN, "");
+        String token = pref.getString(Const.ACCESS_TOKEN, "");
         Log.i(TAG, "doInBackground token=" + token);
 
         try {
@@ -108,7 +106,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         }
 
         Intent i = new Intent(my_service, MyService.class);
-        i.putExtra(RUN_MODE, couponUse ? 1 : 2);
+        i.putExtra(Const.RUN_MODE, couponUse ? Const.MODE_OFF : Const.MODE_ON);
         PendingIntent pi = PendingIntent.getService(my_service, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Notification n = new NotificationCompat.Builder(my_service)
@@ -121,11 +119,22 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                 .setAutoCancel(false)
                 .build();
 
-        NotificationManager nm = (NotificationManager)my_service.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager nm = (NotificationManager) my_service.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(1, n);
 
+        i = new Intent(my_service, MyService.class);
+        i.putExtra(Const.RUN_MODE, Const.MODE_START);
+        pi = PendingIntent.getService(my_service, 1, i, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) my_service.getSystemService(Context.ALARM_SERVICE);
+        if (couponUse) {
+            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + (120 * 60000), pi);
+        } else {
+            am.cancel(pi);
+        }
+
         SharedPreferences.Editor edit = pref.edit();
-        edit.putBoolean(RUN_FLAG, true);
+        edit.putBoolean(Const.RUN_FLAG, true);
         edit.apply();
         return 0;
     }

@@ -18,14 +18,6 @@ import java.util.TimeZone;
 
 public class MyService extends IntentService {
     private static final String TAG = "MyService";
-    private static final String ACCESS_TOKEN = "access_token";
-    private static final String RUN_FLAG = "run_flag";
-    private static final String ALARM_FLAG = "alarm_flag";
-    private static final String OFF_HOUR = "off_hour";
-    private static final String OFF_MINUTE = "off_minute";
-    private static final String ON_HOUR = "on_hour";
-    private static final String ON_MINUTE = "on_minute";
-    private static final String RUN_MODE = "run_mode";
     private boolean retry_flag = false;
 
     public MyService(){
@@ -40,10 +32,10 @@ public class MyService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        final int mode = intent.getIntExtra(RUN_MODE, 0);
+        final int mode = intent.getIntExtra(Const.RUN_MODE, Const.MODE_START);
         Log.i(TAG, "onStartCommand mode=" + mode);
 
-        if (mode < 100) {
+        if (mode < Const.MODE_REFRESH) {
             doRefreshAlarm();
             new AsyncHttpRequest(this) {
                 @Override
@@ -64,17 +56,17 @@ public class MyService extends IntentService {
                     }
                 }
             }.execute(mode);
-        } else if (mode == 100) {
+        } else if (mode == Const.MODE_REFRESH) {
             doRefreshAlarm();
         } else {
-            NotificationManager nm = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             nm.cancel(1);
             cancelAlarm(true);
             cancelAlarm(false);
 
             SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
             SharedPreferences.Editor edit = pref.edit();
-            edit.putBoolean(RUN_FLAG, false);
+            edit.putBoolean(Const.RUN_FLAG, false);
             edit.apply();
         }
     }
@@ -88,7 +80,7 @@ public class MyService extends IntentService {
     private boolean doRefreshAlarm() {
         Log.i(TAG, "doRefreshAlarm");
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        int alarm_flag = pref.getInt(ALARM_FLAG, 0);
+        int alarm_flag = pref.getInt(Const.ALARM_FLAG, 0);
         switch (alarm_flag) {
             case 0:
                 cancelAlarm(true);
@@ -114,16 +106,16 @@ public class MyService extends IntentService {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         int hour, minute;
         if (flag) {
-            hour = pref.getInt(OFF_HOUR, 8);
-            minute = pref.getInt(OFF_MINUTE, 0);
+            hour = pref.getInt(Const.OFF_HOUR, 8);
+            minute = pref.getInt(Const.OFF_MINUTE, 0);
         } else {
-            hour = pref.getInt(ON_HOUR, 17);
-            minute = pref.getInt(ON_MINUTE, 0);
+            hour = pref.getInt(Const.ON_HOUR, 17);
+            minute = pref.getInt(Const.ON_MINUTE, 0);
         }
 
         Intent i = new Intent(this, MyService.class);
-        i.putExtra(RUN_MODE, flag ? 1 : 2);
-        PendingIntent pi = PendingIntent.getService(this, flag ? 1 : 2, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        i.putExtra(Const.RUN_MODE, flag ? Const.MODE_OFF : Const.MODE_ON);
+        PendingIntent pi = PendingIntent.getService(this, flag ? 2 : 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
@@ -143,7 +135,7 @@ public class MyService extends IntentService {
 
     private boolean cancelAlarm(boolean flag) {
         Intent i = new Intent(this, MyService.class);
-        PendingIntent pi = PendingIntent.getService(this, flag ? 1 : 2, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pi = PendingIntent.getService(this, flag ? 2 : 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         am.cancel(pi);
         return true;
@@ -154,10 +146,11 @@ public class MyService extends IntentService {
         Toast.makeText(this, R.string.toast_1, Toast.LENGTH_LONG).show();
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = pref.edit();
-        edit.putString(ACCESS_TOKEN, "");
+        edit.putString(Const.ACCESS_TOKEN, "");
+        edit.putBoolean(Const.REFRESH_FLAG, true);
         edit.apply();
         Uri uri = Uri.parse("https://api.iijmio.jp/mobile/d/v1/authorization/?response_type=token&client_id=pZgayGOChl8Lm5ILZKy&state=" + mode + "&redirect_uri=com.unk2072.iijmiotoggle%3A%2F%2Fcallback");
-        startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        startActivity(new Intent(Intent.ACTION_VIEW, uri).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         return true;
     }
 
@@ -170,7 +163,7 @@ public class MyService extends IntentService {
             @Override
             public void run() {
                 Intent i = new Intent(MyService.this, MyService.class);
-                i.putExtra(RUN_MODE, mode);
+                i.putExtra(Const.RUN_MODE, mode);
                 startService(i);
             }
         }, 60000);

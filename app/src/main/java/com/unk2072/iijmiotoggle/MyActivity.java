@@ -23,14 +23,6 @@ import android.widget.TimePicker;
 
 public class MyActivity extends ActionBarActivity implements AdapterView.OnItemClickListener {
     private static final String TAG = "MyActivity";
-    private static final String ACCESS_TOKEN = "access_token";
-    private static final String RUN_FLAG = "run_flag";
-    private static final String ALARM_FLAG = "alarm_flag";
-    private static final String OFF_HOUR = "off_hour";
-    private static final String OFF_MINUTE = "off_minute";
-    private static final String ON_HOUR = "on_hour";
-    private static final String ON_MINUTE = "on_minute";
-    private static final String RUN_MODE = "run_mode";
     private String[] mListText = new String[4];
     private ArrayAdapter<String> mAdapter;
 
@@ -42,7 +34,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         initListView();
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        String token = pref.getString(ACCESS_TOKEN, "");
+        String token = pref.getString(Const.ACCESS_TOKEN, "");
 
         if (token.equals("")) {
             Uri uri = Uri.parse("https://api.iijmio.jp/mobile/d/v1/authorization/?response_type=token&client_id=pZgayGOChl8Lm5ILZKy&state=0&redirect_uri=com.unk2072.iijmiotoggle%3A%2F%2Fcallback");
@@ -78,16 +70,18 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor edit = pref.edit();
-        edit.putString(ACCESS_TOKEN, token);
+        edit.putString(Const.ACCESS_TOKEN, token);
         edit.apply();
 
-        boolean run_flag = pref.getBoolean(RUN_FLAG, false);
-        if (run_flag) {
+        boolean refresh_flag = pref.getBoolean(Const.REFRESH_FLAG, false);
+        if (refresh_flag) {
+            edit.putBoolean(Const.REFRESH_FLAG, false);
+            edit.apply();
             String state = Uri.parse(data).getQueryParameter("state");
             Log.i(TAG, "onNewIntent state=" + state);
             int mode = Integer.valueOf(state);
             Intent i = new Intent(this, MyService.class);
-            i.putExtra(RUN_MODE, mode);
+            i.putExtra(Const.RUN_MODE, mode);
             startService(i);
         }
         super.onNewIntent(intent);
@@ -101,12 +95,12 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
     private boolean initListView() {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean run_flag = pref.getBoolean(RUN_FLAG, false);
-        int alarm_flag = pref.getInt(ALARM_FLAG, 0);
-        int off_hour = pref.getInt(OFF_HOUR, 8);
-        int off_minute = pref.getInt(OFF_MINUTE, 0);
-        int on_hour = pref.getInt(ON_HOUR, 17);
-        int on_minute = pref.getInt(ON_MINUTE, 0);
+        boolean run_flag = pref.getBoolean(Const.RUN_FLAG, false);
+        int alarm_flag = pref.getInt(Const.ALARM_FLAG, 0);
+        int off_hour = pref.getInt(Const.OFF_HOUR, 8);
+        int off_minute = pref.getInt(Const.OFF_MINUTE, 0);
+        int on_hour = pref.getInt(Const.ON_HOUR, 17);
+        int on_minute = pref.getInt(Const.ON_MINUTE, 0);
 
         mListText[0] = run_flag ? getString(R.string.list1_1) : getString(R.string.list1_0);
         mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[alarm_flag]);
@@ -147,16 +141,16 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
     private boolean doToggleService() {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean run_flag = pref.getBoolean(RUN_FLAG, false);
+        boolean run_flag = pref.getBoolean(Const.RUN_FLAG, false);
 
         if (run_flag) {
             Intent i = new Intent(this, MyService.class);
-            i.putExtra(RUN_MODE, 101);
+            i.putExtra(Const.RUN_MODE, Const.MODE_STOP);
             startService(i);
             mListText[0] = getString(R.string.list1_0);
         } else {
             Intent i = new Intent(this, MyService.class);
-            i.putExtra(RUN_MODE, 0);
+            i.putExtra(Const.RUN_MODE, Const.MODE_START);
             startService(i);
             mListText[0] = getString(R.string.list1_1);
         }
@@ -181,7 +175,7 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             SharedPreferences.Editor edit = pref.edit();
 
             my.mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[i]);
-            edit.putInt(ALARM_FLAG, i);
+            edit.putInt(Const.ALARM_FLAG, i);
             edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
@@ -199,11 +193,11 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             builder.setTitle(R.string.time_title);
             mTimePicker = new TimePicker(getActivity());
             if (savedInstanceState != null){
-                mTimePicker.setCurrentHour(savedInstanceState.getInt(OFF_HOUR));
-                mTimePicker.setCurrentMinute(savedInstanceState.getInt(OFF_MINUTE));
+                mTimePicker.setCurrentHour(savedInstanceState.getInt(Const.OFF_HOUR));
+                mTimePicker.setCurrentMinute(savedInstanceState.getInt(Const.OFF_MINUTE));
             } else {
-                mTimePicker.setCurrentHour(pref.getInt(OFF_HOUR, 8));
-                mTimePicker.setCurrentMinute(pref.getInt(OFF_MINUTE, 0));
+                mTimePicker.setCurrentHour(pref.getInt(Const.OFF_HOUR, 8));
+                mTimePicker.setCurrentMinute(pref.getInt(Const.OFF_MINUTE, 0));
             }
             mTimePicker.setIs24HourView(DateFormat.is24HourFormat(getActivity()));
             mTimePicker.setSaveFromParentEnabled(false);
@@ -216,8 +210,8 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         @Override
         public void onSaveInstanceState(Bundle outState) {
             if (mTimePicker != null){
-                outState.putInt(OFF_HOUR, mTimePicker.getCurrentHour());
-                outState.putInt(OFF_MINUTE, mTimePicker.getCurrentMinute());
+                outState.putInt(Const.OFF_HOUR, mTimePicker.getCurrentHour());
+                outState.putInt(Const.OFF_MINUTE, mTimePicker.getCurrentMinute());
             }
             super.onSaveInstanceState(outState);
         }
@@ -230,8 +224,8 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             MyActivity my = (MyActivity)getActivity();
             SharedPreferences.Editor edit = pref.edit();
             my.mListText[2] = getString(R.string.list3_0, hour, minute);
-            edit.putInt(OFF_HOUR, hour);
-            edit.putInt(OFF_MINUTE, minute);
+            edit.putInt(Const.OFF_HOUR, hour);
+            edit.putInt(Const.OFF_MINUTE, minute);
             edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
@@ -249,11 +243,11 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             builder.setTitle(R.string.time_title);
             mTimePicker = new TimePicker(getActivity());
             if (savedInstanceState != null){
-                mTimePicker.setCurrentHour(savedInstanceState.getInt(ON_HOUR));
-                mTimePicker.setCurrentMinute(savedInstanceState.getInt(ON_MINUTE));
+                mTimePicker.setCurrentHour(savedInstanceState.getInt(Const.ON_HOUR));
+                mTimePicker.setCurrentMinute(savedInstanceState.getInt(Const.ON_MINUTE));
             } else {
-                mTimePicker.setCurrentHour(pref.getInt(ON_HOUR, 17));
-                mTimePicker.setCurrentMinute(pref.getInt(ON_MINUTE, 0));
+                mTimePicker.setCurrentHour(pref.getInt(Const.ON_HOUR, 17));
+                mTimePicker.setCurrentMinute(pref.getInt(Const.ON_MINUTE, 0));
             }
             mTimePicker.setIs24HourView(DateFormat.is24HourFormat(getActivity()));
             mTimePicker.setSaveFromParentEnabled(false);
@@ -266,8 +260,8 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         @Override
         public void onSaveInstanceState(Bundle outState) {
             if (mTimePicker != null){
-                outState.putInt(ON_HOUR, mTimePicker.getCurrentHour());
-                outState.putInt(ON_MINUTE, mTimePicker.getCurrentMinute());
+                outState.putInt(Const.ON_HOUR, mTimePicker.getCurrentHour());
+                outState.putInt(Const.ON_MINUTE, mTimePicker.getCurrentMinute());
             }
             super.onSaveInstanceState(outState);
         }
@@ -280,8 +274,8 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             MyActivity my = (MyActivity)getActivity();
             SharedPreferences.Editor edit = pref.edit();
             my.mListText[3] = getString(R.string.list4_0, hour, minute);
-            edit.putInt(ON_HOUR, hour);
-            edit.putInt(ON_MINUTE, minute);
+            edit.putInt(Const.ON_HOUR, hour);
+            edit.putInt(Const.ON_MINUTE, minute);
             edit.apply();
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
@@ -290,11 +284,11 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
     private boolean refreshSetting() {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean run_flag = pref.getBoolean(RUN_FLAG, false);
+        boolean run_flag = pref.getBoolean(Const.RUN_FLAG, false);
 
         if (run_flag) {
             Intent i = new Intent(this, MyService.class);
-            i.putExtra(RUN_MODE, 100);
+            i.putExtra(Const.RUN_MODE, Const.MODE_REFRESH);
             startService(i);
         }
         return true;
