@@ -44,17 +44,17 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
 
     @Override
     protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
         String action = intent.getAction();
         if (action == null || !action.equals(Intent.ACTION_VIEW)) {
             Log.e(TAG, "onNewIntent getAction");
-            super.onNewIntent(intent);
             return;
         }
 
         String data = intent.getDataString();
         if (data == null) {
-            Log.e(TAG, "getDataString");
-            super.onNewIntent(intent);
+            Log.e(TAG, "onNewIntent getDataString");
             return;
         }
         Log.i(TAG, "onNewIntent data=" + data);
@@ -63,7 +63,6 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         String token = Uri.parse(data).getQueryParameter("access_token");
         if (token == null) {
             Log.e(TAG, "onNewIntent getQueryParameter");
-            super.onNewIntent(intent);
             return;
         }
         Log.i(TAG, "onNewIntent token=" + token);
@@ -84,7 +83,6 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             i.putExtra(Const.RUN_MODE, mode);
             startService(i);
         }
-        super.onNewIntent(intent);
     }
 
     @Override

@@ -33,7 +33,7 @@ public class MyService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         final int mode = intent.getIntExtra(Const.RUN_MODE, Const.MODE_START);
-        Log.i(TAG, "onStartCommand mode=" + mode);
+        Log.i(TAG, "onHandleIntent mode=" + mode);
 
         if (mode < Const.MODE_REFRESH) {
             doRefreshAlarm();
@@ -102,7 +102,7 @@ public class MyService extends IntentService {
         return true;
     }
 
-    private boolean setAlarm(boolean flag) {
+    private boolean setAlarm(final boolean flag) {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         int hour, minute;
         if (flag) {
@@ -133,7 +133,7 @@ public class MyService extends IntentService {
         return true;
     }
 
-    private boolean cancelAlarm(boolean flag) {
+    private boolean cancelAlarm(final boolean flag) {
         Intent i = new Intent(this, MyService.class);
         PendingIntent pi = PendingIntent.getService(this, flag ? 2 : 3, i, PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
