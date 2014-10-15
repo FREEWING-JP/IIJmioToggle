@@ -12,17 +12,15 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
     private static final String TAG = "AsyncHttpRequest";
@@ -45,35 +43,44 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         Log.i(TAG, "doInBackground token=" + token);
 
         try {
-            HttpGet method = new HttpGet("https://api.iijmio.jp/mobile/d/v1/coupon/");
-            method.setHeader("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
-            method.setHeader("X-IIJmio-Authorization", token);
-            DefaultHttpClient client = new DefaultHttpClient();
-            HttpResponse response = client.execute(method);
-            if (response == null) {
-                return 1;
-            }
-            int status = response.getStatusLine().getStatusCode();
-            if (status == 200) {
-                final String json = EntityUtils.toString(response.getEntity());
-                Log.i(TAG, "get json=" + json);
-                JSONObject root = new JSONObject(json);
-                JSONObject couponInfo = root.getJSONArray("couponInfo").getJSONObject(0);
-                JSONObject hdoInfo = couponInfo.getJSONArray("hdoInfo").getJSONObject(0);
-                volume = hdoInfo.getJSONArray("coupon").getJSONObject(0).getInt("volume");
-                couponUse = hdoInfo.getBoolean("couponUse");
-                hdoServiceCode = hdoInfo.getString("hdoServiceCode");
-                JSONArray couponArray = couponInfo.getJSONArray("coupon");
-                for (int i = 0; i < couponArray.length(); i++) {
-                    volume += couponArray.getJSONObject(i).getInt("volume");
-                }
-                Log.i(TAG, "couponUse=" + couponUse + ", volume=" + volume);
-            } else {
+            URL url = new URL("https://api.iijmio.jp/mobile/d/v1/coupon/");
+            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http.setRequestMethod("GET");
+            http.setRequestProperty("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
+            http.setRequestProperty("X-IIJmio-Authorization", token);
+            http.connect();
+            int status = http.getResponseCode();
+            if (status != 200) {
                 return status;
             }
+            InputStream in = http.getInputStream();
+            byte[] buf = new byte[1024];
+            StringBuilder sb = new StringBuilder();
+            int size;
+            while ((size = in.read(buf)) != -1) {
+                sb.append(new String(buf, 0, size));
+            }
+            in.close();
+            http.disconnect();
+
+            final String json = new String(sb);
+            Log.i(TAG, "get json=" + json);
+            JSONObject root = new JSONObject(json);
+            JSONObject couponInfo = root.getJSONArray("couponInfo").getJSONObject(0);
+            JSONObject hdoInfo = couponInfo.getJSONArray("hdoInfo").getJSONObject(0);
+            volume = hdoInfo.getJSONArray("coupon").getJSONObject(0).getInt("volume");
+            couponUse = hdoInfo.getBoolean("couponUse");
+            hdoServiceCode = hdoInfo.getString("hdoServiceCode");
+            JSONArray couponArray = couponInfo.getJSONArray("coupon");
+            for (int i = 0; i < couponArray.length(); i++) {
+                volume += couponArray.getJSONObject(i).getInt("volume");
+            }
+            Log.i(TAG, "couponUse=" + couponUse + ", volume=" + volume);
         } catch (IOException e) {
+            e.printStackTrace();
             return 1;
         } catch (JSONException e) {
+            e.printStackTrace();
             return 1;
         }
 
@@ -81,25 +88,27 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
             Boolean couponUse_new = mode != 1;
             if (couponUse != couponUse_new) {
                 try {
-                    HttpPut method = new HttpPut("https://api.iijmio.jp/mobile/d/v1/coupon/");
-                    method.setHeader("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
-                    method.setHeader("X-IIJmio-Authorization", token);
-                    method.setHeader("Content-Type", "application/json");
+                    URL url = new URL("https://api.iijmio.jp/mobile/d/v1/coupon/");
+                    HttpURLConnection http = (HttpURLConnection) url.openConnection();
+                    http.setRequestMethod("PUT");
+                    http.setDoOutput(true);
+                    http.setRequestProperty("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
+                    http.setRequestProperty("X-IIJmio-Authorization", token);
+                    http.setRequestProperty("Content-Type", "application/json");
+
                     final String json = "{\"couponInfo\": [{\"hdoInfo\": [{\"hdoServiceCode\": \"" + hdoServiceCode + "\", \"couponUse\": " + couponUse_new +" }] }] }";
-                    method.setEntity(new StringEntity(json));
                     Log.i(TAG, "put json=" + json);
-                    DefaultHttpClient client = new DefaultHttpClient();
-                    HttpResponse response = client.execute(method);
-                    if (response == null) {
-                        return 1;
-                    }
-                    int status = response.getStatusLine().getStatusCode();
-                    if (status == 200) {
-                        couponUse = couponUse_new;
-                    } else {
+                    OutputStreamWriter out = new OutputStreamWriter(http.getOutputStream());
+                    out.write(json);
+                    out.close();
+                    int status = http.getResponseCode();
+                    if (status != 200) {
                         return status;
                     }
+                    couponUse = couponUse_new;
+                    http.disconnect();
                 } catch (IOException e) {
+                    e.printStackTrace();
                     return 1;
                 }
             }
