@@ -95,15 +95,11 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         boolean run_flag = pref.getBoolean(Const.RUN_FLAG, false);
         int alarm_flag = pref.getInt(Const.ALARM_FLAG, 0);
-        int off_hour = pref.getInt(Const.OFF_HOUR, 8);
-        int off_minute = pref.getInt(Const.OFF_MINUTE, 0);
-        int on_hour = pref.getInt(Const.ON_HOUR, 17);
-        int on_minute = pref.getInt(Const.ON_MINUTE, 0);
 
         mListText[0] = run_flag ? getString(R.string.list1_1) : getString(R.string.list1_0);
         mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[alarm_flag]);
-        mListText[2] = getString(R.string.list3_0, off_hour, off_minute);
-        mListText[3] = getString(R.string.list4_0, on_hour, on_minute);
+        mListText[2] = getString(R.string.list3_0, pref.getInt(Const.OFF_HOUR, 8), pref.getInt(Const.OFF_MINUTE, 0));
+        mListText[3] = getString(R.string.list4_0, pref.getInt(Const.ON_HOUR, 17), pref.getInt(Const.ON_MINUTE, 0));
 
         mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mListText);
         ListView listView = (ListView) findViewById(R.id.listView);
@@ -168,20 +164,20 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
         @Override
         public void onClick(DialogInterface dialogInterface, int i) {
             if (3 < i) return;
-            MyActivity my = (MyActivity)getActivity();
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my);
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
             SharedPreferences.Editor edit = pref.edit();
-
-            my.mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[i]);
             edit.putInt(Const.ALARM_FLAG, i);
             edit.apply();
+
+            MyActivity my = (MyActivity)getActivity();
+            my.mListText[1] = getString(R.string.list2_0, getResources().getStringArray(R.array.select_array)[i]);
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
     }
 
     public static class SettingDialog2 extends DialogFragment implements DialogInterface.OnClickListener {
-        TimePicker mTimePicker;
+        private TimePicker mTimePicker;
 
         @NonNull
         @Override
@@ -219,19 +215,20 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
             int hour = mTimePicker.getCurrentHour();
             int minute = mTimePicker.getCurrentMinute();
-            MyActivity my = (MyActivity)getActivity();
             SharedPreferences.Editor edit = pref.edit();
-            my.mListText[2] = getString(R.string.list3_0, hour, minute);
             edit.putInt(Const.OFF_HOUR, hour);
             edit.putInt(Const.OFF_MINUTE, minute);
             edit.apply();
+
+            MyActivity my = (MyActivity)getActivity();
+            my.mListText[2] = getString(R.string.list3_0, hour, minute);
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
     }
 
     public static class SettingDialog3 extends DialogFragment implements DialogInterface.OnClickListener {
-        TimePicker mTimePicker;
+        private TimePicker mTimePicker;
 
         @NonNull
         @Override
@@ -269,12 +266,13 @@ public class MyActivity extends ActionBarActivity implements AdapterView.OnItemC
             final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
             int hour = mTimePicker.getCurrentHour();
             int minute = mTimePicker.getCurrentMinute();
-            MyActivity my = (MyActivity)getActivity();
             SharedPreferences.Editor edit = pref.edit();
-            my.mListText[3] = getString(R.string.list4_0, hour, minute);
             edit.putInt(Const.ON_HOUR, hour);
             edit.putInt(Const.ON_MINUTE, minute);
             edit.apply();
+
+            MyActivity my = (MyActivity)getActivity();
+            my.mListText[3] = getString(R.string.list4_0, hour, minute);
             my.mAdapter.notifyDataSetChanged();
             my.refreshSetting();
         }
