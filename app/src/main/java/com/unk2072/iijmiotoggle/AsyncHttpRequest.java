@@ -16,8 +16,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -42,9 +43,10 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         String token = pref.getString(Const.ACCESS_TOKEN, "");
         Log.i(TAG, "doInBackground token=" + token);
 
+        HttpURLConnection http = null;
         try {
             URL url = new URL("https://api.iijmio.jp/mobile/d/v1/coupon/");
-            HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod("GET");
             http.setRequestProperty("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
             http.setRequestProperty("X-IIJmio-Authorization", token);
@@ -53,15 +55,14 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
             if (status != 200) {
                 return status;
             }
-            InputStream in = http.getInputStream();
-            byte[] buf = new byte[1024];
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(http.getInputStream()));
             StringBuilder sb = new StringBuilder();
-            int size;
-            while ((size = in.read(buf)) != -1) {
-                sb.append(new String(buf, 0, size));
+            String line;
+            while ((line = in.readLine()) != null) {
+                sb.append(line);
             }
             in.close();
-            http.disconnect();
 
             final String json = new String(sb);
             Log.i(TAG, "get json=" + json);
@@ -82,14 +83,17 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         } catch (JSONException e) {
             e.printStackTrace();
             return 1;
+        } finally {
+            if (http != null) http.disconnect();
         }
 
         if (mode != 0) {
             Boolean couponUse_new = mode != 1;
             if (couponUse != couponUse_new) {
+                http = null;
                 try {
                     URL url = new URL("https://api.iijmio.jp/mobile/d/v1/coupon/");
-                    HttpURLConnection http = (HttpURLConnection) url.openConnection();
+                    http = (HttpURLConnection) url.openConnection();
                     http.setRequestMethod("PUT");
                     http.setDoOutput(true);
                     http.setRequestProperty("X-IIJmio-Developer", "pZgayGOChl8Lm5ILZKy");
@@ -106,10 +110,11 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                         return status;
                     }
                     couponUse = couponUse_new;
-                    http.disconnect();
                 } catch (IOException e) {
                     e.printStackTrace();
                     return 1;
+                } finally {
+                    if (http != null) http.disconnect();
                 }
             }
         }
