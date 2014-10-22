@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -123,7 +122,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
         i.putExtra(Const.RUN_MODE, couponUse ? Const.MODE_OFF : Const.MODE_ON);
         PendingIntent pi = PendingIntent.getService(my_service, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Notification n = new NotificationCompat.Builder(my_service)
+        Notification n = new Notification.Builder(my_service)
                 .setWhen(System.currentTimeMillis())
                 .setSmallIcon(couponUse ? R.drawable.ic_stat_on : R.drawable.ic_stat_off)
                 .setContentTitle(my_service.getString(R.string.notify_title, volume))
