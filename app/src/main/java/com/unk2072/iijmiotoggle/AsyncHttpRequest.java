@@ -15,9 +15,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -55,11 +54,12 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                 return status;
             }
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(http.getInputStream()));
+            InputStream in = http.getInputStream();
             StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = in.readLine()) != null) {
-                sb.append(line);
+            byte[] buf = new byte[1024];
+            int size;
+            while ((size = in.read(buf)) >= 0) {
+                sb.append(new String(buf, 0, size));
             }
             in.close();
 
