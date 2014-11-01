@@ -51,7 +51,7 @@ public class MyService extends IntentService {
                             doRetry(mode);
                             break;
                         default:
-                            Log.d(TAG, "onPostExecute result=" + result);
+                            doError(result);
                             break;
                     }
                 }
@@ -167,6 +167,12 @@ public class MyService extends IntentService {
                 startService(i);
             }
         }, 60000);
+        return true;
+    }
+
+    private boolean doError(final int result) {
+        Log.d(TAG, "onPostExecute result=" + result);
+        Toast.makeText(this, R.string.toast_3, Toast.LENGTH_LONG).show();
         return true;
     }
 }
