@@ -1,14 +1,6 @@
 package com.unk2072.iijmiotoggle;
 
-import android.app.AlarmManager;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -21,24 +13,23 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
+public class AsyncHttpRequest extends AsyncTask<String, Void, Integer>  {
     private static final String TAG = "AsyncHttpRequest";
-    private MyService my_service;
+    private MyService mService;
+    int mMode;
+    int mVolume;
+    boolean mCouponUse;
 
-    public AsyncHttpRequest(MyService my) {
+    public AsyncHttpRequest(MyService my, int mode) {
         super();
-        my_service = my;
+        mService = my;
+        mMode = mode;
     }
 
     @Override
-    protected Integer doInBackground(Integer... values) {
-        int mode = values[0];
-        int volume;
-        boolean couponUse;
+    protected Integer doInBackground(String... values) {
         String hdoServiceCode;
-
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(my_service);
-        String token = pref.getString(Const.ACCESS_TOKEN, "");
+        String token = values[0];
         Log.i(TAG, "doInBackground token=" + token);
 
         HttpURLConnection http = null;
@@ -68,14 +59,14 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
             JSONObject root = new JSONObject(json);
             JSONObject couponInfo = root.getJSONArray("couponInfo").getJSONObject(0);
             JSONObject hdoInfo = couponInfo.getJSONArray("hdoInfo").getJSONObject(0);
-            volume = hdoInfo.getJSONArray("coupon").getJSONObject(0).getInt("volume");
-            couponUse = hdoInfo.getBoolean("couponUse");
+            mVolume = hdoInfo.getJSONArray("coupon").getJSONObject(0).getInt("volume");
+            mCouponUse = hdoInfo.getBoolean("couponUse");
             hdoServiceCode = hdoInfo.getString("hdoServiceCode");
             JSONArray couponArray = couponInfo.getJSONArray("coupon");
             for (int i = 0; i < couponArray.length(); i++) {
-                volume += couponArray.getJSONObject(i).getInt("volume");
+                mVolume += couponArray.getJSONObject(i).getInt("volume");
             }
-            Log.i(TAG, "couponUse=" + couponUse + ", volume=" + volume);
+            Log.i(TAG, "couponUse=" + mCouponUse + ", volume=" + mVolume);
         } catch (IOException e) {
             e.printStackTrace();
             return 1;
@@ -86,9 +77,9 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
             if (http != null) http.disconnect();
         }
 
-        if (mode != 0) {
-            Boolean couponUse_new = mode != 1;
-            if (couponUse != couponUse_new) {
+        if (mMode != 0) {
+            Boolean couponUseNew = mMode != 1;
+            if (mCouponUse != couponUseNew) {
                 http = null;
                 try {
                     URL url = new URL("https://api.iijmio.jp/mobile/d/v1/coupon/");
@@ -99,7 +90,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                     http.setRequestProperty("X-IIJmio-Authorization", token);
                     http.setRequestProperty("Content-Type", "application/json");
 
-                    final String json = "{\"couponInfo\": [{\"hdoInfo\": [{\"hdoServiceCode\": \"" + hdoServiceCode + "\", \"couponUse\": " + couponUse_new +" }] }] }";
+                    final String json = "{\"couponInfo\": [{\"hdoInfo\": [{\"hdoServiceCode\": \"" + hdoServiceCode + "\", \"couponUse\": " + couponUseNew +" }] }] }";
                     Log.i(TAG, "put json=" + json);
                     OutputStreamWriter out = new OutputStreamWriter(http.getOutputStream());
                     out.write(json);
@@ -108,7 +99,7 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                     if (status != 200) {
                         return status;
                     }
-                    couponUse = couponUse_new;
+                    mCouponUse = couponUseNew;
                 } catch (IOException e) {
                     e.printStackTrace();
                     return 1;
@@ -117,38 +108,24 @@ public class AsyncHttpRequest extends AsyncTask<Integer, Integer, Integer>  {
                 }
             }
         }
-
-        Intent i = new Intent(my_service, MyService.class);
-        i.putExtra(Const.RUN_MODE, couponUse ? Const.MODE_OFF : Const.MODE_ON);
-        PendingIntent pi = PendingIntent.getService(my_service, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        Notification n = new Notification.Builder(my_service)
-                .setWhen(System.currentTimeMillis())
-                .setSmallIcon(couponUse ? R.drawable.ic_stat_on : R.drawable.ic_stat_off)
-                .setContentTitle(my_service.getString(R.string.notify_title, volume))
-                .setContentText(my_service.getString(R.string.notify_text))
-                .setContentIntent(pi)
-                .setOngoing(true)
-                .setAutoCancel(false)
-                .build();
-
-        NotificationManager nm = (NotificationManager) my_service.getSystemService(Context.NOTIFICATION_SERVICE);
-        nm.notify(1, n);
-
-        i = new Intent(my_service, MyService.class);
-        i.putExtra(Const.RUN_MODE, Const.MODE_START);
-        pi = PendingIntent.getService(my_service, 1, i, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        AlarmManager am = (AlarmManager) my_service.getSystemService(Context.ALARM_SERVICE);
-        if (couponUse) {
-            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + (120 * 60000), pi);
-        } else {
-            am.cancel(pi);
-        }
-
-        SharedPreferences.Editor edit = pref.edit();
-        edit.putBoolean(Const.RUN_FLAG, true);
-        edit.apply();
         return 0;
+    }
+
+    @Override
+    protected void onPostExecute(Integer result) {
+        switch (result) {
+            case 0:
+                mService.doStartService(mVolume, mCouponUse);
+                break;
+            case 403:
+                mService.doRefreshToken(mMode);
+                break;
+            case 429:
+                mService.doRetry(mMode);
+                break;
+            default:
+                mService.doError(result);
+                break;
+        }
     }
 }

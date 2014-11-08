@@ -2,13 +2,13 @@ package com.unk2072.iijmiotoggle;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,16 +18,9 @@ import java.util.TimeZone;
 
 public class MyService extends IntentService {
     private static final String TAG = "MyService";
-    private boolean retry_flag = false;
 
     public MyService(){
         super(TAG);
-    }
-
-    @Override
-    public void onCreate() {
-        Log.i(TAG, "onCreate");
-        super.onCreate();
     }
 
     @Override
@@ -37,47 +30,66 @@ public class MyService extends IntentService {
 
         if (mode < Const.MODE_REFRESH) {
             doRefreshAlarm();
-            new AsyncHttpRequest(this) {
-                @Override
-                protected void onPostExecute(Integer result) {
-                    switch (result) {
-                        case 0:
-                            retry_flag = false;
-                            break;
-                        case 403:
-                            doRefreshToken(mode);
-                            break;
-                        case 429:
-                            doRetry(mode);
-                            break;
-                        default:
-                            doError(result);
-                            break;
-                    }
-                }
-            }.execute(mode);
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+            new AsyncHttpRequest(this, mode).execute(pref.getString(Const.ACCESS_TOKEN, ""));
         } else if (mode == Const.MODE_REFRESH) {
             doRefreshAlarm();
         } else {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            nm.cancel(1);
-            cancelAlarm(true);
-            cancelAlarm(false);
-
-            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
-            SharedPreferences.Editor edit = pref.edit();
-            edit.putBoolean(Const.RUN_FLAG, false);
-            edit.apply();
+            doStopService();
         }
     }
 
-    @Override
-    public void onDestroy() {
-        Log.i(TAG, "onDestroy");
-        super.onDestroy();
+    protected boolean doStartService(final int volume, final boolean couponUse) {
+        Intent i = new Intent(this, MyService.class);
+        i.putExtra(Const.RUN_MODE, couponUse ? Const.MODE_OFF : Const.MODE_ON);
+        PendingIntent pi = PendingIntent.getService(this, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Notification n = new Notification.Builder(this)
+                .setWhen(System.currentTimeMillis())
+                .setSmallIcon(couponUse ? R.drawable.ic_stat_on : R.drawable.ic_stat_off)
+                .setContentTitle(getString(R.string.notify_title, volume))
+                .setContentText(getString(R.string.notify_text))
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .build();
+
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.notify(1, n);
+
+        i = new Intent(this, MyService.class);
+        i.putExtra(Const.RUN_MODE, Const.MODE_START);
+        pi = PendingIntent.getService(this, 1, i, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (couponUse) {
+            am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + (120 * 60000), pi);
+        } else {
+            am.cancel(pi);
+        }
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor edit = pref.edit();
+        edit.putBoolean(Const.RUN_FLAG, true);
+        edit.putBoolean(Const.RETRY_FLAG, false);
+        edit.apply();
+        return true;
     }
 
-    private boolean doRefreshAlarm() {
+    protected boolean doStopService() {
+        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        nm.cancel(1);
+        cancelAlarm(true);
+        cancelAlarm(false);
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor edit = pref.edit();
+        edit.putBoolean(Const.RUN_FLAG, false);
+        edit.apply();
+        return true;
+    }
+
+    protected boolean doRefreshAlarm() {
         Log.i(TAG, "doRefreshAlarm");
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         int alarm_flag = pref.getInt(Const.ALARM_FLAG, 0);
@@ -141,7 +153,7 @@ public class MyService extends IntentService {
         return true;
     }
 
-    private boolean doRefreshToken(final int mode) {
+    protected boolean doRefreshToken(final int mode) {
         Log.i(TAG, "doRefreshToken");
         Toast.makeText(this, R.string.toast_1, Toast.LENGTH_LONG).show();
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
@@ -154,23 +166,25 @@ public class MyService extends IntentService {
         return true;
     }
 
-    private boolean doRetry(final int mode) {
+    protected boolean doRetry(final int mode) {
         Log.i(TAG, "doRetry");
-        if (retry_flag || mode == 0) return false;
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        if (mode == 0 || pref.getBoolean(Const.RETRY_FLAG, false)) return false;
         Toast.makeText(this, R.string.toast_2, Toast.LENGTH_LONG).show();
-        retry_flag = true;
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Intent i = new Intent(MyService.this, MyService.class);
-                i.putExtra(Const.RUN_MODE, mode);
-                startService(i);
-            }
-        }, 60000);
+        SharedPreferences.Editor edit = pref.edit();
+        edit.putBoolean(Const.RETRY_FLAG, true);
+        edit.apply();
+
+        Intent i = new Intent(this, MyService.class);
+        i.putExtra(Const.RUN_MODE, mode);
+        PendingIntent pi = PendingIntent.getService(this, 4, i, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 60000, pi);
         return true;
     }
 
-    private boolean doError(final int result) {
+    protected boolean doError(final int result) {
         Log.d(TAG, "onPostExecute result=" + result);
         Toast.makeText(this, R.string.toast_3, Toast.LENGTH_LONG).show();
         return true;

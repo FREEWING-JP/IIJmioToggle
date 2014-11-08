@@ -5,6 +5,7 @@ public final class Const {
     public static final String RUN_FLAG     = "run_flag";
     public static final String REFRESH_FLAG = "refresh_flag";
     public static final String ALARM_FLAG   = "alarm_flag";
+    public static final String RETRY_FLAG   = "retry_flag";
     public static final String OFF_HOUR     = "off_hour";
     public static final String OFF_MINUTE   = "off_minute";
     public static final String ON_HOUR      = "on_hour";
